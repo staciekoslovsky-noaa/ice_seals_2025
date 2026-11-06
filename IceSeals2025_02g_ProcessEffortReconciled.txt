@@ -64,6 +64,13 @@ WHERE
 	OR (m.flight = 'fl242' AND m.dt >= '20250607_021017.617960' AND m.dt <= '20250607_021022.394159')
 ;
 
+UPDATE surv_ice_seals_2025.geo_images_meta m
+SET effort_reconciled = 'OFF'
+FROM surv_ice_seals_2025.tbl_images i
+WHERE 
+--fl223 (missed during previous review and only caught on a map)
+	(m.flight = 'fl223' AND m.dt <= '20250513_211338.870383')
+
 --Update effort when still on BEAR effort
 UPDATE surv_ice_seals_2025.geo_images_meta m
 SET effort_reconciled = 'BEAR'
