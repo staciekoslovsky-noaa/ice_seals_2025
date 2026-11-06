@@ -1,0 +1,8 @@
+SELECT r.flight, r.camera_view, r.processed_detection_id, r.image_name, i.detection_type AS detection_type_ir, r.detection_type AS detection_type_rgb, g. suppressed, r.bound_left, r.bound_right
+FROM surv_ice_seals_2025.tbl_detections_processed_rgb r
+INNER JOIN surv_ice_seals_2025.tbl_detections_processed_ir i USING (processed_detection_id)
+INNER JOIN surv_ice_seals_2025.geo_detections g USING (processed_detection_id)
+WHERE (i.detection_type LIKE '%duplicate'
+OR suppressed = 'true')
+AND r.detection_type LIKE '%seal'
+ORDER BY image_name
