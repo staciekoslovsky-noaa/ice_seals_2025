@@ -1,45 +1,52 @@
+DROP TABLE IF EXISTS  surv_ice_seals_2025.geo_images_footprint_intersect;
+
+CREATE TABLE surv_ice_seals_2025.geo_images_footprint_intersect AS
+SELECT flight, camera_view, dt, image_group, ST_Intersection(ST_MakeValid(color_geom), ST_MakeValid(ir_geom)) AS intersect_geom
+FROM (SELECT *
+FROM (SELECT flight, camera_view, dt, image_name as color_image, image_group, geom AS color_geom FROM surv_ice_seals_2025.geo_images_footprint WHERE image_type = 'rgb_image') r
+INNER JOIN (SELECT image_name as ir_image, image_group, geom AS ir_geom FROM surv_ice_seals_2025.geo_images_footprint WHERE image_type = 'ir_image') i
+USING (image_group)
+) p;
+
 CREATE OR REPLACE VIEW surv_ice_seals_2025.geo_4abundance_images
 AS
-SELECT row_number() OVER (ORDER BY flight, camera_view, f.image_name) AS id,
+SELECT row_number() OVER (ORDER BY flight, camera_view, dt) AS id,
     flight,
     camera_view,
-    f.image_name,
     dt,
+	f.image_group,
     m.effort_reconciled,
     m.ins_altitude,
-    st_transform(f.geom, 3338) AS geom
+    st_transform(f.intersect_geom, 3338) AS geom
 FROM surv_ice_seals_2025.geo_images_meta m
-LEFT JOIN surv_ice_seals_2025.geo_images_footprint f USING (flight, camera_view, dt)
-WHERE m.effort_reconciled::text LIKE 'ON%'::text AND f.image_type = 'rgb_image'::text;
-  
-
-  
+LEFT JOIN surv_ice_seals_2025.geo_images_footprint_intersect f USING (flight, camera_view, dt)
+WHERE m.effort_reconciled::text LIKE 'ON%'::text;
   
 CREATE OR REPLACE VIEW surv_ice_seals_2025.geo_4abundance_seals
 AS
 SELECT row_number() OVER (ORDER BY i.flight, i.camera_view, d.image_name) AS id,
     i.flight,
     i.camera_view,
-    d.image_name,
     i.dt,
+	f.image_group,
     d.processed_detection_id AS detection_id,
     t.detection_type AS ir_classification,
     d.detection_type AS species,
     d.species_confidence,
     d.age_class,
     d.age_class_confidence,
-    st_transform(st_centroid(f.geom), 3338) AS image_geom
+    st_transform(st_centroid(f.intersect_geom), 3338) AS image_geom
 FROM surv_ice_seals_2025.tbl_detections_processed_rgb d
      LEFT JOIN surv_ice_seals_2025.tbl_detections_processed_ir t USING (processed_detection_id)
      LEFT JOIN surv_ice_seals_2025.tbl_images i ON i.image_name::text = d.image_name::text
      LEFT JOIN surv_ice_seals_2025.geo_images_meta m ON i.flight::text = m.flight::text AND i.camera_view::text = m.camera_view::text AND i.dt::text = m.dt::text
-     LEFT JOIN surv_ice_seals_2025.geo_images_footprint f ON i.image_name::text = f.image_name
+     LEFT JOIN surv_ice_seals_2025.geo_images_footprint_intersect f ON i.image_group = f.image_group
 WHERE m.effort_reconciled::text LIKE 'ON%'::text 
 AND d.detection_type::text ~~ '%seal'::text 
 AND (t.detection_type::text = 'animal'::text OR t.detection_type::text = 'animal_prev_rgb'::text);
 
   
-  
+ 
   
   
   
